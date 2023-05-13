@@ -1,5 +1,4 @@
-#include <stdio.h>
-#include <math.h>
+include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
@@ -10,7 +9,7 @@ typedef struct  produtos {
 	char nome [30];
 	char sku [15];
 	int quantidade;
-	float preço;
+	float preco;
 	int id;	
 	int categoria;
 }caracteristicas;
@@ -21,7 +20,7 @@ typedef struct catg {
 	struct elem* prev;
 }categoria;
 
-categoria* criar_categoria(INFO new_info){
+/*categoria* criar_categoria(INFO new_info){
 	categoria* nova = (categoria*) calloc(1, sizeof(categoria));
 	nova ->node = new_info;
 	nova ->next =NULL;
@@ -37,53 +36,54 @@ categoria* inserir_categoria_inicio(categoria* lista, INFO new_info){
 	nova->prev = NULL;
 	return nova;
 }
+*/
 void criarproduto()
 {
     // Verificar se o limite máximo de produtos foi atingido
-    FILE *arquivo = fopen("produtos.txt", "r");
-    if (arquivo == NULL) {
-        printf("Erro ao abrir o arquivo.\n");
+    FILE *ficheiro = fopen("produtos.txt", "r");
+    if (ficheiro == NULL) {
+        printf("Erro ao abrir o ficheiro.\n");
         return;
     }
     
     int num_produtos = 0;
     char linha[100];
-    while (fgets(linha, 100, arquivo) != NULL) {
+    while (fgets(linha, 100, ficheiro) != NULL) {
         num_produtos++;
     }
-		 fclose(arquivo);
+		 fclose(ficheiro);
 
 	 if (num_produtos >= MAX_PRODUTOS) {
         printf("Limite máximo de produtos (%d) atingido.\n", MAX_PRODUTOS);
         return;
     }
 
-	  // Obter informações do usuário
+	  // Obter informações do utilizador
     Caracteristicas novo_produto;
-    printf("Digite o nome do produto: ");
+    printf("Escreva o nome do produto: ");
     fgets(novo_produto.nome, 30, stdin);
-    printf("Digite o SKU do produto: ");
+    printf("Escreva o SKU do produto: ");
     fgets(novo_produto.sku, 15, stdin);
-    printf("Digite a quantidade do produto: ");
+    printf("Escreva a quantidade do produto: ");
     scanf("%d", &novo_produto.quantidade);
-    printf("Digite o preço do produto: ");
+    printf("Escreva o preço do produto: ");
     scanf("%f", &novo_produto.preco);
-    printf("Digite o identificador do produto: ");
+    printf("Escreva o id do produto: ");
     scanf("%d", &novo_produto.id);
-    printf("Digite a categoria do produto: ");
+    printf("Escreva a categoria do produto: ");
     scanf("%d", &novo_produto.categoria);
     
-    // Abrir o arquivo para escrever
-    arquivo = fopen("produtos.txt", "a");
-    if (arquivo == NULL) {
-        printf("Erro ao abrir o arquivo.\n");
+    // Abrir o ficheiro para escrever
+    ficheiro = fopen("produtos.txt", "a");
+    if (ficheiro == NULL) {
+        printf("Erro ao abrir o ficheiro.\n");
         return;
     }
-	// Escrever as informações no arquivo
-    fprintf(arquivo, "%s;%s;%d;%.2f;%d;%d\n", novo_produto.nome, novo_produto.sku, novo_produto.quantidade, novo_produto.preco, novo_produto.id, novo_produto.categoria);
+	// Escrever as informações no ficheiro
+    fprintf(ficheiro, "%s;%s;%d;%.2f;%d;%d\n", novo_produto.nome, novo_produto.sku, novo_produto.quantidade, novo_produto.preco, novo_produto.id, novo_produto.categoria);
     
-    // Fechar o arquivo
-    fclose(arquivo);
+    // Fechar o ficheiro
+    fclose(ficheiro);
     
     printf("Produto criado com sucesso!\n");
 }
@@ -91,34 +91,34 @@ void criarproduto()
 
 void editarproduto()
 {
-	 // Abrir o arquivo para leitura
-    FILE *arquivo = fopen("produtos.txt", "r");
-    if (arquivo == NULL) {
-        printf("Erro ao abrir o arquivo.\n");
+	 // Abrir o ficheiro para leitura
+    FILE *ficheiro = fopen("produtos.txt", "r");
+    if (ficheiro == NULL) {
+        printf("Erro ao abrir o ficheiro.\n");
         return;
     }
-    // Ler as informações do arquivo e armazená-las em uma matriz de structs
+    // Ler as informações do ficheiro e armazená-las numa matriz de structs
     Caracteristicas produtos[MAX_PRODUTOS];
     int num_produtos = 0;
     char linha[100];
-    while (fgets(linha, 100, arquivo) != NULL) {
+    while (fgets(linha, 100, ficheiro) != NULL) {
         sscanf(linha, "%[^;];%[^;];%d;%f;%d;%d\n", produtos[num_produtos].nome, produtos[num_produtos].sku, &produtos[num_produtos].quantidade, &produtos[num_produtos].preco, &produtos[num_produtos].id, &produtos[num_produtos].categoria);
         num_produtos++;
     }
-     // Fechar o arquivo
-    fclose(arquivo);
+     // Fechar o ficheiro
+    fclose(ficheiro);
     
-    // Verificar se não há produtos cadastrados
+    // Verificar se não há produtos 
     if (num_produtos == 0) {
-        printf("Nenhum produto cadastrado.\n");
+        printf("Nenhum produto registado.\n");
         return;
     }
-     // Obter o identificador do produto a ser editado
+     // Obter o id do produto a ser editado
     int id;
-    printf("Digite a identificação do produto a ser editado: ");
+    printf("Digite o id do produto a ser editado: ");
     scanf("%d", &id);
     
-    // Procurar o produto com o identificador informado e permitir a edição das informações
+    // Procurar o produto com o id e permitir a edição das informações
     int encontrado = 0;
     for (int i = 0; i < num_produtos; i++) {
         if (produtos[i].id == id) {
@@ -128,10 +128,10 @@ void editarproduto()
             printf("SKU: %s", produtos[i].sku);
             printf("Quantidade: %d\n", produtos[i].quantidade);
             printf("Preço: %.2f\n", produtos[i].preco);
-            printf("Identificador: %d\n", produtos[i].id);
+            printf("Id: %d\n", produtos[i].id);
             printf("Categoria: %d\n", produtos[i].categoria);
             
-            printf("Digite as novas informações do produto:\n");
+            printf("Escreva as novas informações do produto:\n");
             printf("Nome: ");
             fgets(produtos[i].nome, 30, stdin); // Consumir o caractere de nova linha pendente
             fgets(produtos[i].nome, 30, stdin);
@@ -141,7 +141,7 @@ void editarproduto()
             scanf("%d", &produtos[i].quantidade);
             printf("Preço: ");
             scanf("%f", &produtos[i].preco);
-            printf("Identificador: ");
+            printf("Id: ");
             scanf("%d", &produtos[i].id);
             printf("Categoria: ");
             scanf("%d", &produtos[i].categoria);
@@ -151,26 +151,28 @@ void editarproduto()
     }
     
     if (!encontrado) {
-        printf("Produto com identificador %d não encontrado.\n", id);
+        printf("Produto com id (%d) não encontrado.\n", id);
         return;
     }
-	 // Abrir o arquivo para escrita
-    arquivo = fopen("produtos.txt", "w");
-    if (arquivo == NULL) {
-        printf("Erro ao abrir o arquivo.\n");
+	 // Abrir o ficheiro para escrita
+    ficheiro = fopen("produtos.txt", "w");
+    if (ficheiro == NULL) {
+        printf("Erro ao abrir o ficheiro.\n");
         return;
     }
     
-    // Escrever as informações atualizadas no arquivo
+    // Escrever as informações atualizadas no ficheiro
     for (int i = 0; i < num_produtos; i++) {
-        fprintf(arquivo, "%s;%s;%d;%.2f;%d;%d\n", produtos[i].nome, produtos[i].sku, produtos[i].quantidade, produtos[i].preco, produtos[i].id, produtos[i].categoria);
+        fprintf(ficheiro, "%s;%s;%d;%.2f;%d;%d\n", produtos[i].nome, produtos[i].sku, produtos[i].quantidade, produtos[i].preco, produtos[i].id, produtos[i].categoria);
     }
     
-    // Fechar o arquivo
-    fclose(arquivo);
+    // Fechar o ficheiro
+    fclose(ficheiro);
     
     printf("Produto atualizado com sucesso.\n");
 }
+
+
 
 
 
