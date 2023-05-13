@@ -1,4 +1,5 @@
-include <math.h>
+#include <stdio.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
@@ -171,22 +172,114 @@ void editarproduto()
     
     printf("Produto atualizado com sucesso.\n");
 }
+void removerproduto()
+{
+    // Abrir o ficheiro para leitura
+    FILE *ficheiro = fopen("produtos.txt", "r");
+    if (ficheiro == NULL) {
+        printf("Erro ao abrir o ficheiro.\n");
+        return;
+    }
+    // Ler as informações do ficheiro e armazená-las numa matriz de structs
+    caracteristicas produtos[MAX_PRODUTOS];
+    int num_produtos = 0;
+    char linha[100];
+    while (fgets(linha, 100, ficheiro) != NULL) {
+        sscanf(linha, "%[^;];%[^;];%d;%f;%d;%d\n", produtos[num_produtos].nome, produtos[num_produtos].sku, &produtos[num_produtos].quantidade, &produtos[num_produtos].preco, &produtos[num_produtos].id, &produtos[num_produtos].categoria);
+        num_produtos++;
+    }
+    // Fechar o ficheiro
+    fclose(ficheiro);
+    
+    // Verificar se não há produtos 
+    if (num_produtos == 0) {
+        printf("Nenhum produto registado.\n");
+        return;
+    }
+    
+    // Obter o id do produto a ser removido
+    int id;
+    printf("Digite o id do produto a ser removido: ");
+    scanf("%d", &id);
+    
+    // Procurar o produto com o id e, se encontrado, mover todos os produtos depois dele para uma posição anterior na matriz
+    int encontrado = 0;
+    for (int i = 0; i < num_produtos; i++) {
+        if (produtos[i].id == id) {
+            encontrado = 1;
+            printf("Produto encontrado:\n");
+            printf("Nome: %s", produtos[i].nome);
+            printf("SKU: %s", produtos[i].sku);
+            printf("Quantidade: %d\n", produtos[i].quantidade);
+            printf("Preço: %.2f\n", produtos[i].preco);
+            printf("Id: %d\n", produtos[i].id);
+            printf("Categoria: %d\n", produtos[i].categoria);
+            
+            // Mover todos os produtos depois do produto encontrado para uma posição anterior na matriz
+            for (int j = i; j < num_produtos - 1; j++) {
+                produtos[j] = produtos[j + 1];
+            }
+			  // Atualizar o número de produtos na matriz
+			num_produtos--;
+			break;
+		}
+	}
+	// Se o produto não foi encontrado, informar o usuário
+	if (!encontrado) {
+   	 printf("Produto não encontrado.\n");
+   	 return;
+	}
 
+	// Abrir o ficheiro para escrita
+	ficheiro = fopen("produtos.txt", "w");
+	if (ficheiro == NULL) {
+	    printf("Erro ao abrir o ficheiro.\n");
+ 	   return;
+	}
 
+	// Escrever a matriz atualizada no ficheiro
+	for (int i = 0; i < num_produtos; i++) {
+	    fprintf(ficheiro, "%s;%s;%d;%.2f;%d;%d\n", produtos[i].nome, produtos[i].sku, produtos[i].quantidade, produtos[i].preco, produtos[i].id, produtos[i].categoria);
+	}
 
+	// Fechar o ficheiro
+	fclose(ficheiro);
 
+	printf("Produto removido com sucesso.\n");
+}
+void listarprodutos() {
+    // Abrir o ficheiro para leitura
+    FILE *ficheiro = fopen("produtos.txt", "r");
+    if (ficheiro == NULL) {
+        printf("Erro ao abrir o ficheiro.\n");
+        return;
+    }
 
+    // Ler as informações do ficheiro e armazená-las numa matriz de structs
+    caracteristicas produtos[MAX_PRODUTOS];
+    int num_produtos = 0;
+    char linha[100];
+    while (fgets(linha, 100, ficheiro) != NULL) {
+        sscanf(linha, "%[^;];%[^;];%d;%f;%d;%d\n", produtos[num_produtos].nome, produtos[num_produtos].sku, &produtos[num_produtos].quantidade, &produtos[num_produtos].preco, &produtos[num_produtos].id, &produtos[num_produtos].categoria);
+        num_produtos++;
+    }
 
+    // Fechar o ficheiro
+    fclose(ficheiro);
 
+    // Verificar se não há produtos
+    if (num_produtos == 0) {
+        printf("Nenhum produto registado.\n");
+        return;
+    }
 
-
-
-
-
-
-
-
-
-
-
-
+    // Imprimir a tabela com as informações dos produtos
+    printf("Produtos cadastrados:\n");
+    printf("+----+-----------------------------------+-------------------+----------+--------------+------------+\n");
+    printf("| ID |             Nome do Produto         |        SKU        | Quantidade |    Preço     | Categoria  |\n");
+    printf("+----+-----------------------------------+-------------------+----------+--------------+------------+\n");
+    for (int i = 0; i < num_produtos; i++) {
+        printf("|%4d|%35s|%19s|%10d|%14.2f|%12d|\n", produtos[i].id, produtos[i].nome, produtos[i].sku, produtos[i].quantidade, produtos[i].preco, produtos[i].categoria);
+    }
+    printf("+----+-----------------------------------+-------------------+----------+--------------+------------+\n");
+}
