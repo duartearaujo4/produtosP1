@@ -12,32 +12,28 @@ typedef struct  produtos {
 	int quantidade;
 	float preco;
 	int id;	
-	int categoria;
+	char categoria[25];
 }caracteristicas;
 
-typedef struct catg {
-	INFO node;
-	struct catg* next;
-	struct elem* prev;
-}categoria;
+typedef struct categoria {
+    char nome[25];
+    struct categoria* next;
+} Categoria;
 
-/*categoria* criar_categoria(INFO new_info){
-	categoria* nova = (categoria*) calloc(1, sizeof(categoria));
-	nova ->node = new_info;
-	nova ->next =NULL;
-	nova ->prev =NULL;
-	return novo;
+Categoria* criar_categoria(char nome[]) {
+    Categoria* nova_categoria = (Categoria*) malloc(sizeof(Categoria));
+    strcpy(nova_categoria->nome, nome);
+    nova_categoria->next = NULL;
+    return nova_categoria;
 }
-categoria* inserir_categoria_inicio(categoria* lista, INFO new_info){
-	categoria* nova = criar_categoria(new_info);
-	if(lista!= NULL){
-		lista->prev = nova;
-	}
-	nova->next = lista;
-	nova->prev = NULL;
-	return nova;
+
+Categoria* inserir_categoria(Categoria* lista_categorias, char nome[]) {
+    Categoria* nova_categoria = criar_categoria(nome);
+    nova_categoria->next = lista_categorias;
+    return nova_categoria;
 }
-*/
+
+
 void criarproduto()
 {
     // Verificar se o limite máximo de produtos foi atingido
