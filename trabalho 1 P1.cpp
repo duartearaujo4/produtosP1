@@ -12,28 +12,38 @@ typedef struct  produtos {
 	int quantidade;
 	float preco;
 	int id;	
-	char categoria[25];
+	int categoria;
 }caracteristicas;
 
-typedef struct categoria {
-    char nome[25];
-    struct categoria* next;
-} Categoria;
+typedef struct catg {
+	INFO node;
+	struct catg* next;
+	struct elem* prev;
+}categoria;
 
-Categoria* criar_categoria(char nome[]) {
-    Categoria* nova_categoria = (Categoria*) malloc(sizeof(Categoria));
-    strcpy(nova_categoria->nome, nome);
-    nova_categoria->next = NULL;
-    return nova_categoria;
+typedef struct clientes{
+    char nome[50];
+    int nif[9];
+    char telefone[9];
+} dados;
+
+/*categoria* criar_categoria(INFO new_info){
+	categoria* nova = (categoria*) calloc(1, sizeof(categoria));
+	nova ->node = new_info;
+	nova ->next =NULL;
+	nova ->prev =NULL;
+	return novo;
 }
-
-Categoria* inserir_categoria(Categoria* lista_categorias, char nome[]) {
-    Categoria* nova_categoria = criar_categoria(nome);
-    nova_categoria->next = lista_categorias;
-    return nova_categoria;
+categoria* inserir_categoria_inicio(categoria* lista, INFO new_info){
+	categoria* nova = criar_categoria(new_info);
+	if(lista!= NULL){
+		lista->prev = nova;
+	}
+	nova->next = lista;
+	nova->prev = NULL;
+	return nova;
 }
-
-
+*/
 void criarproduto()
 {
     // Verificar se o limite máximo de produtos foi atingido
@@ -279,3 +289,69 @@ void listarprodutos() {
     }
     printf("+----+-----------------------------------+-------------------+----------+--------------+------------+\n");
 }
+
+
+
+
+
+
+void criarcliente()
+{
+	//Obter informaçoes do cliente
+Dados novo_cliente;	
+printf("Escreva o nome do cliente: ");
+fgets(novo_cliente.nome, 50, stdin);
+printf("Escreva o NIF do cliente: ");
+fgets(novo_cliente.nif, 9, stdin);	
+printf("Introduza o numero de telefone do cliente: ");
+fgets(novo_cliente.telefone,9 ,stdin);
+
+	// Abrir o ficheiro para escrever
+    ficheiro = fopen("clientes.txt", "a");
+    if (ficheiro == NULL) {
+        printf("Erro ao abrir o ficheiro.\n");
+        return;
+    }
+	// Escrever as informações no ficheiro
+    fprintf(ficheiro, "%s;%s;%d;%.2f;%d;%d\n", novo_cliente.nome, novo_cliente.nif, novo_cliente.telefone);
+    
+    // Fechar o ficheiro
+    fclose(ficheiro);
+    
+    printf("cliente criado com sucesso!\n");
+}
+	
+void atualizarcliente()
+{
+	//obter o NIF do cliente a ser atualizado
+	int nif;
+	printf("Digite o NIF do cliente a ser atualizado: ");
+	scanf("%d", &nif);
+	
+	// Procurar o cliente com o nif e permitir a atualizaçao dos dados
+	 int encontrado = 0;
+    for (int i = 0; i < num_clientes; i++) {
+        if (clientes[i].nif == nif) {
+            encontrado = 1;
+            printf("Cliente encontrado:\n");
+            printf("Nome: %s", clientes[i].nome);
+            printf("NIF: %s", clientes[i].nif);
+            printf("Telefone: %d\n", clientes[i].telefone);
+            
+            
+            printf("Escreva os novos dados do cliente:\n");
+            printf("Nome: ");
+            fgets(clientes[i].nome, 50, stdin); 
+        	printf("NIF: ");
+            fgets(clientes[i].nif, 9, stdin);
+            printf("Telefone: ");
+            scanf("%d", &clientes[i].telefone);
+            break;
+	
+	
+		}		
+	}
+	
+	 if (!encontrado) {
+        printf("Cliente com nif (%s) não encontrado.\n", nif);
+        return;
