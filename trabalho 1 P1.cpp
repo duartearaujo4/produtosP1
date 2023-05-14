@@ -751,9 +751,7 @@ void realizarVendas() {
     printf("ainda em construcao.\n");
 }
 
-
-
-int main() {
+void inicializar(){
 	// Criar os ficheiros se eles não existirem
 	FILE *ficheiro_produtos = fopen("produtos.txt", "a");
     FILE *ficheiro_clientes = fopen("clientes.txt", "a");
@@ -761,13 +759,17 @@ int main() {
 
     if (ficheiro_produtos == NULL || ficheiro_clientes == NULL || ficheiro_vendas == NULL) {
         printf("Erro: nao foi possivel criar os ficheiros.\n");
-        return 1;
+        
     }
 
     fclose(ficheiro_produtos);
     fclose(ficheiro_clientes);
     fclose(ficheiro_vendas);
 	setlocale(LC_ALL, "pt_PT.utf8");
+}
+
+int main() {
+	inicializar();
     int opcao_menu_principal;
 
     do {
