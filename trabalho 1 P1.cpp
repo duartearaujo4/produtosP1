@@ -29,11 +29,54 @@ typedef struct {
     int id_categoria;
 } Produto;
 		//struct relativa às categorias
-typedef struct {
+typedef struct Categoria {
     int categoria_id;
-
-    char nome[MAX_NOME];
+    char nome[50];
+    struct Categoria* anterior;
+    struct Categoria* proximo;
 } Categoria;
+typedef struct {
+    Categoria* primeira;
+    Categoria* ultima;
+} ColecaoCategorias;
+
+void inicializarColecao(ColecaoCategorias* colecao) {
+    colecao->primeira = NULL;
+    colecao->ultima = NULL;
+}
+
+// Função para adicionar uma nova categoria à coleção
+void adicionarCategoria(ColecaoCategorias* colecao, Categoria novaCategoria) {
+    Categoria* novaCategoriaPtr = (Categoria*)malloc(sizeof(Categoria));
+    if (novaCategoriaPtr == NULL) {
+        printf("Erro: falha na alocação de memória.\n");
+        exit(1);  
+    }
+    *novaCategoriaPtr = novaCategoria;
+    novaCategoriaPtr->anterior = colecao->ultima;
+    novaCategoriaPtr->proximo = NULL;
+
+    if (colecao->primeira == NULL) {
+        colecao->primeira = novaCategoriaPtr;
+    } else {
+        colecao->ultima->proximo = novaCategoriaPtr;
+    }
+
+    colecao->ultima = novaCategoriaPtr;
+}
+
+void liberarColecao(ColecaoCategorias* colecao) {
+    Categoria* atual = colecao->primeira;
+    while (atual != NULL) {
+        Categoria* proxima = atual->proximo;
+        free(atual);
+        atual = proxima;
+    }
+    colecao->primeira = NULL;
+    colecao->ultima = NULL;
+}
+
+
 		//struct relativa aos clientes
 typedef struct{
 	char cnome[MAX_NOME];
@@ -50,11 +93,14 @@ int num_categorias = 0;
 int num_produtos = 0;
 
 //Funções
+void inicializarColecao(ColecaoCategorias* colecao);
+void adicionarCategoria(ColecaoCategorias* colecao, Categoria novaCategoria);
+void liberarColecao(ColecaoCategorias* colecao);
+void criarCategoria(ColecaoCategorias* colecaoCategorias);
 
 void gerirProdutos();
 void gerirClientes();
 void realizarVendas();
-void criarCategoria();
 void editarCategoria();
 void removerCategoria();
 void listarCategorias();
@@ -68,30 +114,28 @@ void gerirCategoriasSubmenu();
 
 
 // Função para criar uma nova categoria
-void criarCategoria() {
-    if (num_categorias >= MAX_CATEGORIAS) {
-        printf("Erro: numero maximo de categorias atingido\n");
-        return;
-    }
-
-    Categoria categoria;
-    categoria.categoria_id = num_categorias + 1;
+void criarCategoria(ColecaoCategorias* colecaoCategorias) {
+    static int proximoID = 1;  // Declaração da variável proximoID
+    Categoria novaCategoria;
+    novaCategoria.categoria_id = proximoID++;
     printf("Escreva o nome da categoria: ");
-    scanf("%s", categoria.nome);
+    scanf("%s", novaCategoria.nome);
 
-    FILE *f = fopen("produtos.txt", "a");
-    if (f == NULL) {
-        printf("Erro ao abrir o ficheiro\n");
+ 
+    adicionarCategoria(colecaoCategorias, novaCategoria);
+
+    FILE* arquivo = fopen("produtos.txt", "a");
+    if (arquivo == NULL) {
+        printf("Erro ao abrir o arquivo\n");
         return;
     }
 
-    fprintf(f, "%d %s\n", categoria.categoria_id, categoria.nome);
-    fclose(f);
-
-    num_categorias++;
+    fprintf(arquivo, "%d %s\n", novaCategoria.categoria_id, novaCategoria.nome);
+    fclose(arquivo);
 
     printf("Categoria criada com sucesso!\n");
 }
+
 
 // Função para editar uma categoria existente
 void editarCategoria() {
@@ -103,7 +147,7 @@ void editarCategoria() {
     int id_categoria;
     printf("Escreva o ID da categoria a ser editada: ");
     
-    // Listar categorias disponíveis para vinculação
+    // Listar categorias disponíveis
     printf("Categorias disponiveis:\n");
     listarCategorias();
 
@@ -221,7 +265,7 @@ void removerCategoria() {
 
     printf("Erro: categoria nao foi encontrada\n");
 }
-
+// Função para listar uma categoria
 void listarCategorias() {
     FILE *arquivo = fopen("produtos.txt", "r");
     if (arquivo == NULL) {
@@ -707,7 +751,10 @@ void gerirProdutosSubmenu() {
 }
 
 void gerirCategoriasSubmenu() {
-    int opcao_menu_gerir_categorias;
+     int opcao_menu_gerir_categorias;
+    ColecaoCategorias colecaoCategorias;
+    inicializarColecao(&colecaoCategorias);
+    
     do {
         system("cls");
         printf("=== MENU GERIR CATEGORIAS DE PRODUTOS ===\n");
@@ -721,7 +768,7 @@ void gerirCategoriasSubmenu() {
 
         switch (opcao_menu_gerir_categorias) {
             case 1:
-                criarCategoria();
+                criarCategoria(&colecaoCategorias);
                 break;
             case 2:
                 editarCategoria();
