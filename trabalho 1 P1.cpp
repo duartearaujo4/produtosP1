@@ -1,4 +1,4 @@
-		#include <stdio.h>
+	#include <stdio.h>
 	#include <stdlib.h>
 	#include <string.h>
 	#include <locale.h>
@@ -12,9 +12,9 @@
 	#define MAX_PRODUTOS 250
 	#define MAX_NOME 50
 	#define MAX_SKU 20
-	#define MAX_NIF 9
-	#define MAX_TELF 9
-	
+	#define MAX_NIF 10
+	#define MAX_TELF 10
+
 	
 	// Definição das estruturas
 			//struct relativa aos produtos
@@ -199,10 +199,11 @@ void liberarColecaoVendas(ColecaoVendas* colecao) {
 	void adicionarCategoria(ColecaoCategorias* colecao, Categoria novaCategoria);
 	void liberarColecao(ColecaoCategorias* colecao);
 	void criarCategoria(ColecaoCategorias* colecaoCategorias);
-	void gerirClientesSubmenu(ColecaoClientes* colecaoClientes);
+	void gerirClientesSubmenu(ColecaoClientes* colecaoClientes, ColecaoVendas* colecaoVendas);
 	void gerirProdutos();
 	void gerirClientes();
-	void realizarVenda(ColecaoVendas* colecaoVendas, ColecaoCategorias* colecaoCategorias, ColecaoClientes* colecaoClientes);
+	void realizarVenda(ColecaoVendas* colecaoVendas, ColecaoCategorias* colecaoCategorias, ColecaoClientes* colecaoClientes,
+				   Produto produtos[], int numProdutos);
 	void editarCategoria(ColecaoCategorias* colecaoCategorias);
 	void removerCategoria(ColecaoCategorias* colecaoCategorias);
 	void listarCategorias();
@@ -214,12 +215,15 @@ void liberarColecaoVendas(ColecaoVendas* colecao) {
 	void gerirProdutosSubmenu();
 	void gerirCategoriasSubmenu();
 	void listarClientes(ColecaoClientes* colecaoClientes);
-
+	int checkVendasCliente(ColecaoVendas* colecaoVendas,int cliente_id);
+	void listarProdutosMaisVendidosHoje(ColecaoVendas* colecaoVendas);
+	void listarVendasPorData(ColecaoVendas* colecaoVendas);
+	void listarVendasPorDataEspecifica(ColecaoVendas* colecaoVendas, const char* data);
 	
 	//Esta função server para dar refresh às categorias
 	void carregarCategorias(ColecaoCategorias* colecaoCategorias) {
     // Abrir o arquivo em modo de leitura
-    FILE *arquivo = fopen("produtos.txt", "r");
+    FILE *arquivo = fopen("categorias.txt", "r");
     if (arquivo == NULL) {
         printf("Erro: ficheiro nao encontrado\n");
         return;
@@ -239,22 +243,31 @@ void liberarColecaoVendas(ColecaoVendas* colecao) {
     fclose(arquivo);
 	}
 	
-	//Esta função server para dar refresh aos produtos
-	void carregarProdutos(Produto produtos[], int* num_produtos) {
+	//Função para dar refresh aos produtos
+	int carregarProdutos(Produto produtos[]) {
     FILE* arquivo = fopen("produtos.txt", "r");
     if (arquivo == NULL) {
         printf("Erro: ficheiro nao encontrado\n");
-        return;
+        return 0;
     }
 
-    *num_produtos = 0;
+    int num_produtos = 0;
 
-    while (fscanf(arquivo, "%d,%[^,],%[^,],%d,%lf\n", &produtos[*num_produtos].id, produtos[*num_produtos].nome, produtos[*num_produtos].sku, &produtos[*num_produtos].quantidade, &produtos[*num_produtos].preco) == 5) {
-        (*num_produtos)++;
+    while (fscanf(arquivo, "%d,%[^,],%[^,],%d,%lf,%d\n", 
+              &produtos[num_produtos].id, 
+              produtos[num_produtos].nome, 
+              produtos[num_produtos].sku, 
+              &produtos[num_produtos].quantidade, 
+              &produtos[num_produtos].preco, 
+              &produtos[num_produtos].id_categoria) == 6) {
+        num_produtos++;
     }
 
     fclose(arquivo);
-	}
+    return num_produtos;
+}
+
+
 
 	// Esta função serve para dar refresh aos clientes
 void carregarClientes(ColecaoClientes* colecaoClientes) {
@@ -278,6 +291,7 @@ void carregarClientes(ColecaoClientes* colecaoClientes) {
 
     fclose(arquivo);
 }
+	// Esta função serve para dar refresh às vendas
 void carregarVendas(ColecaoVendas* colecaoVendas) {
     FILE *arquivo = fopen("vendas.txt", "r");
     if (arquivo == NULL) {
@@ -315,8 +329,30 @@ void carregarVendas(ColecaoVendas* colecaoVendas) {
 
     fclose(arquivo);
 }
+	//função que vê se um cliente tem alguma venda
+	int checkVendasCliente(ColecaoVendas* colecaoVendas,int cliente_id) {
+    // Verificamos se a lista de vendas está vazia
+    if (colecaoVendas->primeira == NULL) {
+        printf("Nenhuma venda foi realizada ainda.\n");
+        return 0; // Retorna 0 para indicar que não há vendas
+    }
 
-	
+    // Percorremos a lista de vendas
+    Venda* atual = colecaoVendas->primeira;
+    while (atual != NULL) {
+        // Se a venda atual foi feita para o cliente de id cliente_id
+        if (atual->cliente_id == cliente_id) {
+            printf("O cliente de ID %d tem vendas associadas.\n", cliente_id);
+            return 1; // Retorna 1 para indicar que encontrou uma venda para o cliente
+        }
+        atual = atual->proximo;
+    }
+
+    // Se percorreu toda a lista e não encontrou nenhuma venda para o cliente
+    printf("O cliente de ID %d não tem vendas associadas.\n", cliente_id);
+    return 0; // Retorna 0 para indicar que não encontrou nenhuma venda para o cliente
+}
+
 	
 	// Função para criar uma nova categoria----------
 	void criarCategoria(ColecaoCategorias* colecaoCategorias) {
@@ -329,7 +365,7 @@ void carregarVendas(ColecaoVendas* colecaoVendas) {
 	 
 	    adicionarCategoria(colecaoCategorias, novaCategoria);
 	
-	    FILE* arquivo = fopen("produtos.txt", "a");
+	    FILE* arquivo = fopen("categorias.txt", "a");
 	    if (arquivo == NULL) {
 	        printf("Erro ao abrir o arquivo\n");
 	        return;
@@ -360,7 +396,7 @@ void editarCategoria(ColecaoCategorias* colecaoCategorias) {
 
     // Abrir ficheiro de texto em modo de leitura
     FILE* arquivo;
-    arquivo = fopen("produtos.txt", "r");
+    arquivo = fopen("categorias.txt.txt", "r");
 
     if (arquivo == NULL) {
         printf("Erro ao abrir o ficheiro\n");
@@ -389,7 +425,7 @@ void editarCategoria(ColecaoCategorias* colecaoCategorias) {
             fclose(arquivo);
 
             // Reabrir o arquivo em modo de escrita e sobrescrever a linha da categoria editada
-            arquivo = fopen("produtos.txt", "r+");
+            arquivo = fopen("categorias.txt", "r+");
             if (arquivo == NULL) {
                 printf("Erro ao abrir o ficheiro\n");
                 return;
@@ -466,7 +502,7 @@ void editarCategoria(ColecaoCategorias* colecaoCategorias) {
 			}
 
 			// Remove a categoria do ficheiro de texto
-			FILE *arquivo = fopen("produtos.txt", "w");
+			FILE *arquivo = fopen("categorias.txt", "w");
 			if (arquivo == NULL) {
   			  printf("Erro: nao foi possivel abrir o ficheiro\n");
   			  return;
@@ -727,6 +763,7 @@ void listarProdutos() {
             printf("ID: %d\tNome: %s\tSKU: %s\tQuantidade: %d\tPreco: %.2f\n", id, nome, sku, quantidade, preco);
         }
     }
+    
     fclose(fp);
 }
 
@@ -885,7 +922,7 @@ void colocarProdutoSemStock() {
 void gerarRelatorioInventario(ColecaoCategorias* colecaoCategorias) {
     FILE* arquivo_relatorio = fopen("relatorio_inventario.txt", "w");
     if (arquivo_relatorio == NULL) {
-        printf("Erro ao criar o arquivo de relatório.\n");
+        printf("Erro ao criar o ficheiro do relatório.\n");
         return;
     }
 
@@ -911,7 +948,12 @@ void gerarRelatorioInventario(ColecaoCategorias* colecaoCategorias) {
 
     fclose(arquivo_relatorio);
 
-    printf("Relatório de inventário gerado com sucesso.\n");
+    printf("Relatório de inventario gerado com sucesso.\n");
+}
+
+void limparBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF) {}
 }
 
 
@@ -921,11 +963,17 @@ void criarCliente(ColecaoClientes* colecaoClientes) {
     Cliente novoCliente;
     novoCliente.cliente_id = proximoID++;
     printf("Escreva o nome do cliente: ");
-    scanf("%s", novoCliente.nome_cliente);
+    scanf("%s", novoCliente.nome_cliente); // Ler o nome do cliente. Isso não lê espaços.
+    getchar(); // Consumir o '\n' deixado por scanf.
+    printf("Nome do cliente lido: %s\n", novoCliente.nome_cliente); // Debug line
     printf("Escreva o NIF do cliente: ");
-    scanf("%s", novoCliente.nif);
+    fgets(novoCliente.nif, sizeof(novoCliente.nif), stdin);
+    limparBuffer();
+    novoCliente.nif[strcspn(novoCliente.nif, "\n")] = 0; // remove newline added by fgets
     printf("Escreva o contato do cliente: ");
-    scanf("%s", novoCliente.contato);
+    fgets(novoCliente.contato, sizeof(novoCliente.contato), stdin);
+    limparBuffer();
+    novoCliente.contato[strcspn(novoCliente.contato, "\n")] = 0; // remove newline added by fgets
 
     adicionarCliente(colecaoClientes, novoCliente);
 
@@ -940,6 +988,7 @@ void criarCliente(ColecaoClientes* colecaoClientes) {
 
     printf("Cliente criado com sucesso!\n");
 }
+
 
 	//Função para editar os dados de um cliente----------
 	void editarCliente(ColecaoClientes* colecaoClientes) {
@@ -1021,7 +1070,7 @@ void criarCliente(ColecaoClientes* colecaoClientes) {
 }
 
 		//Função que remove um cliente----------
-void removerCliente(ColecaoClientes* colecaoClientes) {
+void removerCliente(ColecaoClientes* colecaoClientes, ColecaoVendas* colecaoVendas) {
     if (colecaoClientes->primeiro == NULL) {
         printf("Erro: nenhum cliente registado\n");
         return;
@@ -1041,10 +1090,10 @@ void removerCliente(ColecaoClientes* colecaoClientes) {
         if (atual->cliente_id == id_cliente) {
             // Verifica se há vendas para o cliente
             // ** Aqui você precisa de implementar uma função checkVendasCliente(id_cliente) **
-            if (checkVendasCliente(id_cliente)) {
-                printf("Erro: há vendas ligadas a este cliente\n");
-                return;
-            }
+            if (checkVendasCliente(colecaoVendas, id_cliente)) {
+      		  printf("Erro: ha vendas ligadas a este cliente\n");
+      		  return;
+  			}
 
             Cliente* proximo = atual->proximo;
 
@@ -1064,7 +1113,7 @@ void removerCliente(ColecaoClientes* colecaoClientes) {
             // Remove o cliente do ficheiro de texto
             FILE *arquivo = fopen("clientes.txt", "w");
             if (arquivo == NULL) {
-                printf("Erro: não foi possível abrir o ficheiro\n");
+                printf("Erro: não foi possivel abrir o ficheiro\n");
                 return;
             }
 
@@ -1145,20 +1194,20 @@ void listarClientesPorNome(ColecaoClientes* colecaoClientes) {
 }
 
 
-
-	//Função que apresenta os dados de um cliente pelo seu NIF ----------
-	void apresentarInfoClientePorNIF(ColecaoClientes* colecaoClientes) {
+//Função que apresenta os dados de um cliente pelo seu NIF ----------
+void apresentarInfoClientePorNIF(ColecaoClientes* colecaoClientes) {
     if(colecaoClientes->primeiro == NULL) {
         printf("Erro: Nenhum cliente registado\n");
         return;
     }
 
-    char nif[10]; // substitua 10 pelo tamanho correto do NIF
+    char nif[MAX_NIF + 1];
     printf("Digite o NIF do cliente: ");
     scanf("%s", nif);
 
     Cliente* clienteAtual;
     for(clienteAtual = colecaoClientes->primeiro; clienteAtual != NULL; clienteAtual = clienteAtual->proximo) {
+        printf("Comparando '%s' com '%s'\n", clienteAtual->nif, nif);  // Imprime os NIFs que estão sendo comparados
         if(strcmp(clienteAtual->nif, nif) == 0) {
             // Encontrou o cliente com o NIF fornecido, então imprime as informações
             printf("Nome: %s\n", clienteAtual->nome_cliente);
@@ -1172,11 +1221,12 @@ void listarClientesPorNome(ColecaoClientes* colecaoClientes) {
     printf("Erro: Nenhum cliente com o NIF fornecido foi encontrado\n");
 }
 
+
 //Função para listar os clientes----------
 
 void listarClientes(ColecaoClientes* colecaoClientes) {
     if (colecaoClientes->primeiro == NULL) {
-        printf("Nenhum cliente registrado.\n");
+        printf("Nenhum cliente registado.\n");
         return;
     }
 
@@ -1188,11 +1238,13 @@ void listarClientes(ColecaoClientes* colecaoClientes) {
         printf("ID: %d\n", atual->cliente_id);
         printf("Nome: %s\n", atual->nome_cliente);
         printf("NIF: %s\n", atual->nif);
+        printf("Contato: %s\n", atual->contato);
         printf("-------------------\n");
         atual = atual->proximo;
     }
 }
 
+//função que aninomiza os dados de um cliente
 void anonimizarDadosCliente(ColecaoClientes* colecaoClientes) {
     if(colecaoClientes->primeiro == NULL) {
         printf("Erro: Nenhum cliente registado\n");
@@ -1213,6 +1265,21 @@ void anonimizarDadosCliente(ColecaoClientes* colecaoClientes) {
 
             printf("Dados do cliente com ID %d foram anonimizados.\n", id_cliente);
 
+            // Reabra o arquivo em modo de gravação para atualizar os dados anonimizados
+            FILE* arquivo = fopen("clientes.txt", "w");
+            if (arquivo == NULL) {
+                printf("Erro ao abrir o arquivo\n");
+                return;
+            }
+
+            // Percorra a lista de clientes e reescreva todos os dados no arquivo
+            Cliente* clienteAtualParaEscrever;
+            for(clienteAtualParaEscrever = colecaoClientes->primeiro; clienteAtualParaEscrever != NULL; clienteAtualParaEscrever = clienteAtualParaEscrever->proximo) {
+                fprintf(arquivo, "%d %s %s %s\n", clienteAtualParaEscrever->cliente_id, clienteAtualParaEscrever->nome_cliente, clienteAtualParaEscrever->nif, clienteAtualParaEscrever->contato);
+            }
+
+            fclose(arquivo);
+
             return;
         }
     }
@@ -1223,17 +1290,24 @@ void anonimizarDadosCliente(ColecaoClientes* colecaoClientes) {
 
 
 	//Função para realizar uma venda----------
-void realizarVenda(ColecaoVendas* colecaoVendas, ColecaoCategorias* colecaoCategorias, ColecaoClientes* colecaoClientes) {
+int venda_id_counter = 0;	
+void realizarVenda(ColecaoVendas* colecaoVendas, ColecaoCategorias* colecaoCategorias, ColecaoClientes* colecaoClientes,
+				   Produto produtos[], int num_produtos) {
     Venda novaVenda;
-	int numProdutos;
+    // Listar produtos disponíveis para edição
+    printf("Produtos disponiveis:\n");
+    listarProdutos();	
+    printf("Numero de produtos: %d\n", num_produtos);
+
     // Solicite ao usuário o ID do produto
     printf("Digite o ID do produto: ");
     scanf("%d", &novaVenda.produto_id);
+    
 
     // Verifique se o produto existe
     Produto* produto = NULL;
     int i = 0;
-    for (i = 0; i < numProdutos; i++) {
+    for (i = 0; i < num_produtos; i++) {
         if (produtos[i].id == novaVenda.produto_id) {
             produto = &produtos[i];
             break;
@@ -1241,14 +1315,11 @@ void realizarVenda(ColecaoVendas* colecaoVendas, ColecaoCategorias* colecaoCateg
     }
 
     if (produto == NULL) {
-        printf("Erro: Produto não encontrado.\n");
+        printf("Erro: Produto nao encontrado.\n");
         return;
     }
 
     // Solicite ao usuário o ID do cliente
-    // Listar produtos disponíveis para venda
-    printf("Produtos disponiveis:\n");
-    listarProdutos();
     printf("Digite o ID do cliente: ");
     scanf("%d", &novaVenda.cliente_id);
 
@@ -1259,7 +1330,7 @@ void realizarVenda(ColecaoVendas* colecaoVendas, ColecaoCategorias* colecaoCateg
     }
 
     if (clienteAtual == NULL) {
-        printf("Erro: Cliente não encontrado.\n");
+        printf("Erro: Cliente nao encontrado.\n");
         return;
     }
 
@@ -1269,14 +1340,30 @@ void realizarVenda(ColecaoVendas* colecaoVendas, ColecaoCategorias* colecaoCateg
 
     // Verifique se a quantidade é válida
     if (novaVenda.quantidade > produto->quantidade) {
-        printf("Erro: Quantidade insuficiente no estoque.\n");
+        printf("Erro: Quantidade insuficiente em stock.\n");
         return;
     }
 
-    // Atualize a quantidade de estoque do produto
+    // Atualize a quantidade de stock do produto
     produto->quantidade -= novaVenda.quantidade;
+    // Abrir o arquivo "produtos.txt" em modo de escrita
+	FILE* arquivoProdutos = fopen("produtos.txt", "w");
+	if (arquivoProdutos == NULL) {
+    printf("Erro ao abrir o arquivo produtos.txt\n");
+    return;
+	}
 
-    // Pergunte ao usuário sobre o desconto
+	// Escrever os dados atualizados dos produtos no arquivo
+	for (i = 0; i < num_produtos; i++) {
+    fprintf(arquivoProdutos, "%d,%s,%s,%d,%.2f,%d\n",
+            produtos[i].id, produtos[i].nome, produtos[i].sku,
+            produtos[i].quantidade, produtos[i].preco, produtos[i].id_categoria);
+	}
+
+	// Fechar o ficheiro
+	fclose(arquivoProdutos);
+
+    // Pergunte ao utilizador sobre o desconto
     printf("Digite o desconto aplicado: ");
     scanf("%lf", &novaVenda.desconto);
 
@@ -1298,7 +1385,11 @@ void realizarVenda(ColecaoVendas* colecaoVendas, ColecaoCategorias* colecaoCateg
         printf("Erro ao abrir o ficheiro vendas.txt\n");
         return;
     }
-
+	 // Gerar um ID único para a venda
+    novaVenda.venda_id = ++venda_id_counter;
+	 // Adicionar a nova venda à coleção
+    adicionarVenda(colecaoVendas, novaVenda);
+	
     // Escrever os dados da venda no ficheiro
     fprintf(ficheiro, "ID da Venda: %d\n", novaVenda.venda_id);
     fprintf(ficheiro, "ID do Cliente: %d\n", novaVenda.cliente_id);
@@ -1313,7 +1404,7 @@ void realizarVenda(ColecaoVendas* colecaoVendas, ColecaoCategorias* colecaoCateg
     // Fechar o ficheiro
     fclose(ficheiro);
 
-    printf("Venda registrada com sucesso.\n");
+    printf("Venda registada com sucesso.\n");
 }
 
 
@@ -1323,7 +1414,7 @@ void realizarVenda(ColecaoVendas* colecaoVendas, ColecaoCategorias* colecaoCateg
 void listarVendasPorHora(ColecaoVendas* colecaoVendas) {
     // Verificar se há vendas na coleção
     if (colecaoVendas->primeira == NULL) {
-        printf("Nenhuma venda registrada.\n");
+        printf("Nenhuma venda registada.\n");
         return;
     }
 
@@ -1338,7 +1429,7 @@ void listarVendasPorHora(ColecaoVendas* colecaoVendas) {
     // Alocar memória para o array temporário de vendas
     Venda** vendasArray = (Venda**)malloc(numVendas * sizeof(Venda*));
     if (vendasArray == NULL) {
-        printf("Erro: falha na alocação de memória.\n");
+        printf("Erro: falha na alocaçao de memoria.\n");
         return;
     }
 
@@ -1384,8 +1475,135 @@ void listarVendasPorHora(ColecaoVendas* colecaoVendas) {
     free(vendasArray);
 }
 
+//Função para listar os produtos mais vendidos hoje
+void listarProdutosMaisVendidosHoje(ColecaoVendas* colecaoVendas) {
+    // Obter a data de hoje
+    time_t agora = time(NULL);
+    struct tm* tempoAgora = localtime(&agora);
+    char dataHoje[11];
+    strftime(dataHoje, sizeof(dataHoje), "%Y-%m-%d", tempoAgora);
 
+    // Criar um array para armazenar a quantidade vendida de cada produto
+    // O índice do array corresponde ao ID do produto e o valor armazenado é a quantidade vendida
+    int* quantidadeVendida = (int*)malloc(num_produtos * sizeof(int));
+    if (quantidadeVendida == NULL) {
+        printf("Erro: falha na alocação de memória.\n");
+        return;
+    }
+    memset(quantidadeVendida, 0, num_produtos * sizeof(int));
 
+    // Percorrer as vendas e atualizar o array com as quantidades vendidas de cada produto hoje
+    Venda* vendaAtual = colecaoVendas->primeira;
+    while (vendaAtual != NULL) {
+        if (strcmp(vendaAtual->data, dataHoje) == 0) {
+            quantidadeVendida[vendaAtual->produto_id - 1] += vendaAtual->quantidade;
+        }
+        vendaAtual = vendaAtual->proximo;
+    }
+
+    // Verificar se há produtos vendidos hoje
+    int numProdutosVendidos = 0;
+    int i;
+    for (i = 0; i < num_produtos; i++) {
+        if (quantidadeVendida[i] > 0) {
+            numProdutosVendidos++;
+        }
+    }
+    if (numProdutosVendidos == 0) {
+        printf("Nenhum produto vendido hoje.\n");
+        free(quantidadeVendida);
+        return;
+    }
+
+    // Mostrar os produtos mais vendidos hoje em ordem decrescente da quantidade vendida
+    printf("=== PRODUTOS MAIS VENDIDOS HOJE ===\n");
+    while (numProdutosVendidos > 0) {
+        int maxQuantidade = -1;
+        int maxIndex = -1;
+        int o;
+        for (o = 0; o < num_produtos; o++) {
+            if (quantidadeVendida[i] > maxQuantidade) {
+                maxQuantidade = quantidadeVendida[o];
+                maxIndex = o;
+            }
+        }
+
+        if (maxIndex >= 0) {
+            printf("ID do Produto: %d\n", maxIndex + 1);
+            printf("Quantidade Vendida: %d\n", maxQuantidade);
+            printf("====================\n");
+
+            quantidadeVendida[maxIndex] = -1;
+            numProdutosVendidos--;
+        }
+    }
+
+    // Liberar a memória alocada
+    free(quantidadeVendida);
+}
+
+void listarVendasPorDataEspecifica(ColecaoVendas* colecaoVendas, const char* data) {
+    // Percorrer as vendas e listar as vendas da data específica
+    Venda* vendaAtual = colecaoVendas->primeira;
+    int encontrouVendas = 0;
+    while (vendaAtual != NULL) {
+        if (strcmp(vendaAtual->data, data) == 0) {
+            // Mostrar os detalhes da venda
+            printf("ID da Venda: %d\n", vendaAtual->venda_id);
+            printf("ID do Cliente: %d\n", vendaAtual->cliente_id);
+            printf("ID do Produto: %d\n", vendaAtual->produto_id);
+            printf("Quantidade: %d\n", vendaAtual->quantidade);
+            printf("Desconto: %.2f\n", vendaAtual->desconto);
+            printf("Total: %.2f\n", vendaAtual->total);
+            printf("Data: %s\n", vendaAtual->data);
+            printf("Hora: %s\n", vendaAtual->hora);
+            printf("====================\n");
+
+            encontrouVendas = 1;
+        }
+        vendaAtual = vendaAtual->proximo;
+    }
+
+    // Verificar se foram encontradas vendas na data específica
+    if (!encontrouVendas) {
+        printf("Nenhuma venda encontrada na data especificada.\n");
+    }
+}
+
+void listarVendasPorData(ColecaoVendas* colecaoVendas) {
+    // Obter a data de hoje
+    time_t agora = time(NULL);
+    struct tm* tempoAgora = localtime(&agora);
+    char dataHoje[11];
+    strftime(dataHoje, sizeof(dataHoje), "%Y-%m-%d", tempoAgora);
+
+    // Perguntar ao usuário se deseja listar as vendas de hoje ou inserir uma data específica
+    int opcao;
+    printf("Deseja listar as vendas de hoje ou de uma data específica?\n");
+    printf("1. Hoje\n");
+    printf("2. Data específica\n");
+    printf("Digite sua escolha: ");
+    scanf("%d", &opcao);
+
+    if (opcao == 2) {
+        // Solicitar ao usuário uma data específica
+        char data[11];
+        printf("Digite a data (no formato YYYY-MM-DD): ");
+        scanf("%s", data);
+
+        // Verificar se a data inserida é válida
+        if (!verificarDataValida(data)) {
+            printf("Data inválida.\n");
+            return;
+        }
+
+        // Chamar a função para listar as vendas na data específica
+        listarVendasPorDataEspecifica(colecaoVendas, data);
+    } else {
+        // Chamar a função para listar as vendas de hoje
+        listarVendasPorDataEspecifica(colecaoVendas, dataHoje);
+    }
+}
 
 
 
@@ -1431,6 +1649,9 @@ void gerirProdutos() {
     ColecaoCategorias colecaoCategorias;
     inicializarColecao(&colecaoCategorias);
     carregarCategorias(&colecaoCategorias);
+    num_produtos = carregarProdutos(produtos);
+
+
     do {
         system("cls");
         printf("=== MENU GERIR PRODUTOS ===\n");
@@ -1440,7 +1661,7 @@ void gerirProdutos() {
         printf("4. Listar Produtos por ordem descendente de preço\n");
         printf("5. Listar Categoria de Produtos e respetivos produtos\n");
         printf("6. Colocar um Produto sem stock\n");
-        printf("7. Gerar um relatório de todo o inventário ordenado por categoria de produto\n");
+        printf("7. Gerar um relatorio de todo o inventario ordenado por categoria de produto\n");
         printf("0. Voltar\n");
         printf("Digite sua escolha: ");
         scanf("%d", &opcao_menu_gerir_produtos);
@@ -1482,6 +1703,8 @@ void gerirProdutosSubmenu() {
     ColecaoCategorias colecaoCategorias;
     inicializarColecao(&colecaoCategorias);
     carregarCategorias(&colecaoCategorias);
+    num_produtos = carregarProdutos(produtos);
+
     do {
         system("cls");
         printf("=== MENU GERIR PRODUTOS ===\n");
@@ -1563,6 +1786,10 @@ void gerirClientes() {
     ColecaoClientes colecaoClientes;
     inicializarColecaoClientes(&colecaoClientes);
     carregarClientes(&colecaoClientes);
+    ColecaoVendas colecaoVendas;
+	inicializarColecaoVendas(&colecaoVendas);
+	carregarVendas(&colecaoVendas);
+
     do {
         system("cls");
         printf("=== MENU GERIR CLIENTES ===\n");
@@ -1576,16 +1803,16 @@ void gerirClientes() {
 
         switch (opcao_menu_gerir_clientes) {
             case 1:
-                gerirClientesSubmenu(&colecaoClientes);  // Para criar, atualizar e remover clientes
+                gerirClientesSubmenu(&colecaoClientes, &colecaoVendas);
                 break;
             case 2:
-                listarClientesPorNome(&colecaoClientes);  // Para listar os clientes em ordem alfabética
+                listarClientesPorNome(&colecaoClientes);  
                 break;
             case 3:
-                apresentarInfoClientePorNIF(&colecaoClientes);  // Para apresentar informações do cliente dado o NIF
+                apresentarInfoClientePorNIF(&colecaoClientes);  
                 break;
             case 4:
-                anonimizarDadosCliente(&colecaoClientes);  // Para anonimizar os dados do cliente
+                anonimizarDadosCliente(&colecaoClientes);  
                 break;
             case 0:
                 break;
@@ -1599,7 +1826,7 @@ void gerirClientes() {
 }
 
 
-void gerirClientesSubmenu(ColecaoClientes* colecaoClientes) {
+void gerirClientesSubmenu(ColecaoClientes* colecaoClientes, ColecaoVendas* colecaoVendas) {
     int opcao_menu_gerir_clientes;
       carregarClientes(colecaoClientes);
     do {
@@ -1621,7 +1848,7 @@ void gerirClientesSubmenu(ColecaoClientes* colecaoClientes) {
                 editarCliente(colecaoClientes);
                 break;
             case 3:
-                removerCliente(colecaoClientes);
+                removerCliente(colecaoClientes,colecaoVendas);
                 break;
             case 4:
                 listarClientes(colecaoClientes);
@@ -1645,7 +1872,7 @@ void gerirVendas() {
     int opcao_menu_gerir_vendas;
     ColecaoVendas colecaoVendas;
     ColecaoCategorias colecaoCategorias;
-    ColecaoClientes colecaoClientes; // Coleção de clientes para ligar as vendas aos clientes
+    ColecaoClientes colecaoClientes;
 
     inicializarColecaoVendas(&colecaoVendas);
     inicializarColecao(&colecaoCategorias);
@@ -1654,7 +1881,10 @@ void gerirVendas() {
     carregarVendas(&colecaoVendas);
     carregarCategorias(&colecaoCategorias);
     carregarClientes(&colecaoClientes);
+    
+    num_produtos = carregarProdutos(produtos);
 
+	 int numProdutos;
     do {
         system("cls");
         printf("=== MENU GERIR VENDAS ===\n");
@@ -1664,24 +1894,23 @@ void gerirVendas() {
         printf("4. Listar todas as vendas de hoje por categoria de produto\n");
         printf("5. Produtos que geraram mais receita hoje\n");
         printf("6. Vendas por tipo de produto hoje\n");
-        printf("7. Gerar relatório de contas do dia\n");
-        printf("8. Gerar relatório de produtos com baixo stock\n");
+        printf("7. Gerar relatorio de contas do dia\n");
+        printf("8. Gerar relatorio de produtos com baixo stock\n");
         printf("0. Voltar\n");
         printf("Digite sua escolha: ");
         scanf("%d", &opcao_menu_gerir_vendas);
-
         switch (opcao_menu_gerir_vendas) {
             case 1:
-                realizarVenda(&colecaoVendas, &colecaoCategorias, &colecaoClientes); // Realiza uma nova venda
+                realizarVenda(&colecaoVendas, &colecaoCategorias, &colecaoClientes, produtos, num_produtos); 
                 break;
             case 2:
-                listarVendasPorHora(&colecaoVendas); // Lista todas as vendas de hoje
+                listarVendasPorHora(&colecaoVendas); 
                 break;
             case 3:
-                //listarProdutosMaisVendidosHoje(&colecaoVendas); // Lista os produtos mais vendidos hoje
+               	 listarProdutosMaisVendidosHoje(&colecaoVendas);
                 break;
             case 4:
-                //listarVendasPorCategoriaHoje(&colecaoVendas); // Lista todas as vendas de hoje por categoria de produto
+                listarVendasPorData(&colecaoVendas);
                 break;
             case 5:
                 //listarProdutosMaisRentaveisHoje(&colecaoVendas); // Lista os produtos que geraram mais receita hoje
@@ -1693,7 +1922,7 @@ void gerirVendas() {
                 //gerarRelatorioContasDia(&colecaoVendas); // Gera um relatório de contas do dia
                 break;
             case 8:
-                //gerarRelatorioBaixoStock(&colecaoProdutos); // Gera um relatório dos produtos com baixo stock
+                //gerarRelatorioBaixoStock(&colecaoProdutos); // Gera um relatório dos produtos com baixo stock (Abaixo de 5)
                 break;
             case 0:
                 break;
@@ -1712,8 +1941,9 @@ void inicializar(){
 	FILE *ficheiro_produtos = fopen("produtos.txt", "a");
     FILE *ficheiro_clientes = fopen("clientes.txt", "a");
     FILE *ficheiro_vendas = fopen("vendas.txt", "a");
+    FILE *ficheiro_categorias = fopen("categorias.txt", "a");
 
-    if (ficheiro_produtos == NULL || ficheiro_clientes == NULL || ficheiro_vendas == NULL) {
+    if (ficheiro_produtos == NULL || ficheiro_clientes == NULL || ficheiro_vendas == NULL || ficheiro_categorias == NULL) {
         printf("Erro: nao foi possivel criar os ficheiros.\n");
         
     }
@@ -1746,7 +1976,7 @@ int main() {
                 gerirClientes();
                 break;
             case 3:
-                realizarVendas();
+                gerirVendas();
                 break;
             case 0:
                 printf("Programa encerrado.\n");
@@ -1758,6 +1988,5 @@ int main() {
 
     return 0;
 }
-
 
 
