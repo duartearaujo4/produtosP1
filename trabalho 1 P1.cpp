@@ -1,4 +1,4 @@
-	#include <stdio.h>
+		#include <stdio.h>
 	#include <stdlib.h>
 	#include <string.h>
 	#include <locale.h>
@@ -219,7 +219,7 @@ void liberarColecaoVendas(ColecaoVendas* colecao) {
 	void listarProdutosMaisVendidosHoje(ColecaoVendas* colecaoVendas);
 	void listarVendasPorData(ColecaoVendas* colecaoVendas);
 	void listarVendasPorDataEspecifica(ColecaoVendas* colecaoVendas, const char* data);
-	
+void listarProdutosMaisRentaveis(ColecaoVendas* colecaoVendas, Produto produtos[], int num_produtos, int periodo);
 	//Esta função server para dar refresh às categorias
 	void carregarCategorias(ColecaoCategorias* colecaoCategorias) {
     // Abrir o arquivo em modo de leitura
@@ -1541,7 +1541,7 @@ void listarProdutosMaisVendidosHoje(ColecaoVendas* colecaoVendas) {
     // Liberar a memória alocada
     free(quantidadeVendida);
 }
-
+		//Função que  mostra as vendas por data específica
 void listarVendasPorDataEspecifica(ColecaoVendas* colecaoVendas, const char* data) {
     // Percorrer as vendas e listar as vendas da data específica
     Venda* vendaAtual = colecaoVendas->primeira;
@@ -1569,30 +1569,47 @@ void listarVendasPorDataEspecifica(ColecaoVendas* colecaoVendas, const char* dat
         printf("Nenhuma venda encontrada na data especificada.\n");
     }
 }
-
+		//Função que  lista as vendas por data de dia ou mês
 void listarVendasPorData(ColecaoVendas* colecaoVendas) {
+    // Função para verificar se a data inserida é válida
+    int verificarDataValida(const char* data) {
+    int dia, mes, ano;
+    if (sscanf(data, "%d-%d-%d", &ano, &mes, &dia) != 3) {
+        return 0;  // Data inválida
+    }
+
+    // Verificar se os valores são válidos para dia, mês e ano
+    if (ano < 1900 || ano > 9999 || mes < 1 || mes > 12 || dia < 1 || dia > 31) {
+        return 0;  // Data inválida
+    }
+
+    return 1;  // Data válida
+}
+
+    
     // Obter a data de hoje
     time_t agora = time(NULL);
     struct tm* tempoAgora = localtime(&agora);
     char dataHoje[11];
     strftime(dataHoje, sizeof(dataHoje), "%Y-%m-%d", tempoAgora);
 
-    // Perguntar ao usuário se deseja listar as vendas de hoje ou inserir uma data específica
+    // Perguntar ao utilizador se deseja listar as vendas de hoje ou inserir uma data específica
     int opcao;
     printf("Deseja listar as vendas de hoje ou de uma data específica?\n");
     printf("1. Hoje\n");
-    printf("2. Data específica\n");
+    printf("2. Data especifica\n");
     printf("Digite sua escolha: ");
     scanf("%d", &opcao);
 
     if (opcao == 2) {
-        // Solicitar ao usuário uma data específica
+        // Solicitar ao utilizador uma data específica
         char data[11];
         printf("Digite a data (no formato YYYY-MM-DD): ");
         scanf("%s", data);
 
         // Verificar se a data inserida é válida
-        if (!verificarDataValida(data)) {
+        int dataValida = verificarDataValida(data);
+        if (!dataValida) {
             printf("Data inválida.\n");
             return;
         }
@@ -1605,43 +1622,166 @@ void listarVendasPorData(ColecaoVendas* colecaoVendas) {
     }
 }
 
+char *strptime(const char *s, const char *format, struct tm *tm) {
+    int year, month, day;
+    sscanf(s, "%d-%d-%d", &year, &month, &day);
+    tm->tm_year = year - 1900;  // Anos desde 1900
+    tm->tm_mon = month - 1;     // Meses desde janeiro [0-11]
+    tm->tm_mday = day;          // Dia do mês [1-31]
+    return NULL;  // Retorna NULL em caso de falha
+}
 
+		//Função que  apresenta os produtos mais rentaveis
+void listarProdutosMaisRentaveis(ColecaoVendas* colecaoVendas, Produto produtos[], int num_produtos, int periodo) {
+    double receitas[MAX_PRODUTOS] = {0};
+    Venda* vendaAtual = colecaoVendas->primeira;
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
 
+    // Calcular a receita total para cada produto
+    while (vendaAtual != NULL) {
+        struct tm tm_venda;
+        strptime(vendaAtual->data, "%Y-%m-%d", &tm_venda);
+        
+        // Checar se a venda aconteceu hoje ou neste mês
+        if ((periodo == 1 && tm.tm_year == tm_venda.tm_year && tm.tm_yday == tm_venda.tm_yday) ||
+            (periodo == 2 && tm.tm_year == tm_venda.tm_year && tm.tm_mon == tm_venda.tm_mon)) {
+            // Procurar o produto da venda
+            int i;
+            for (i = 0; i < num_produtos; i++) {
+                if (produtos[i].id == vendaAtual->produto_id) {
+                    // Adicionar o total da venda à receita do produto
+                    receitas[i] += vendaAtual->total;
+                    break;
+                }
+            }
+        }
+        vendaAtual = vendaAtual->proximo;
+    }
 
+    // Imprimir os produtos e suas respectivas receitas
+    printf("Produtos mais rentaveis:\n");
+    int i;
+    for (i = 0; i < num_produtos; i++) {
+        if (receitas[i] > 0) {
+            printf("Produto: %s, Receita: %.2lf\n", produtos[i].nome, receitas[i]);
+        }
+    }
+}
+		//Função que  apresenta as vendas por tipo de produto
+void vendasPorTipoProduto(ColecaoVendas* colecaoVendas, Produto produtos[], int num_produtos, int id_produto, int periodo) {
+    int vendas = 0;
+    Venda* vendaAtual = colecaoVendas->primeira;
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
 
+    // Calcular o total de vendas para o produto escolhido
+    while (vendaAtual != NULL) {
+        struct tm tm_venda;
+        strptime(vendaAtual->data, "%Y-%m-%d", &tm_venda);
+        
+        // Verificar se a venda é do produto escolhido e se aconteceu hoje ou neste mês
+        if (vendaAtual->produto_id == id_produto &&
+           ((periodo == 1 && tm.tm_year == tm_venda.tm_year && tm.tm_yday == tm_venda.tm_yday) ||
+           (periodo == 2 && tm.tm_year == tm_venda.tm_year && tm.tm_mon == tm_venda.tm_mon))) {
+            vendas += vendaAtual->quantidade;
+        }
+        vendaAtual = vendaAtual->proximo;
+    }
 
+    // Imprimir o total de vendas do produto
+    int i;
+    for (i = 0; i < num_produtos; i++) {
+        if (produtos[i].id == id_produto) {
+            printf("Total de vendas do produto %s: %d\n", produtos[i].nome, vendas);
+            break;
+        }
+    }
+}
+	//Função que gera o relatório de contas do mês, ou do dia
+	void gerarRelatorioContas(ColecaoVendas* colecaoVendas, Produto produtos[], int num_produtos, int periodo) {
+    Venda* vendaAtual = colecaoVendas->primeira;
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    FILE *file;
 
+    // Nome do arquivo baseado no período
+    if (periodo == 1) {
+        file = fopen("relatorio_contas_dia.txt", "w");
+    } else if (periodo == 2) {
+        file = fopen("relatorio_contas_mes.txt", "w");
+    } else {
+        printf("Periodo invalido.");
+        return;
+    }
 
+    if (file == NULL) {
+        printf("Erro ao abrir o arquivo.");
+        return;
+    }
 
+    // Percorrer todas as vendas e gravar as que correspondem ao período escolhido no arquivo
+    while (vendaAtual != NULL) {
+        struct tm tm_venda;
+        strptime(vendaAtual->data, "%Y-%m-%d", &tm_venda);
+        
+        // Verificar se a venda aconteceu hoje ou neste mês
+        if ((periodo == 1 && tm.tm_year == tm_venda.tm_year && tm.tm_yday == tm_venda.tm_yday) ||
+            (periodo == 2 && tm.tm_year == tm_venda.tm_year && tm.tm_mon == tm_venda.tm_mon)) {
+            // Procurar o produto da venda
+            int i;
+            for (i = 0; i < num_produtos; i++) {
+                if (produtos[i].id == vendaAtual->produto_id) {
+                    // Gravar os detalhes da venda no arquivo
+                    fprintf(file, "Produto: %s, Quantidade: %d, Total: %.2lf\n", produtos[i].nome, vendaAtual->quantidade, vendaAtual->total);
+                    break;
+                }
+            }
+        }
+        vendaAtual = vendaAtual->proximo;
+    }
 
+    fclose(file);
+}
+		//Função que gera um relatório para produtos com stock baixo
+void gerarRelatorioBaixoStock(Produto produtos[], int num_produtos, ColecaoVendas* colecaoVendas) {
+    FILE* f = fopen("relatorio_baixo_stock.txt", "w");
+    if (f == NULL) {
+        printf("Erro ao abrir o arquivo relatorio_baixo_stock.txt para escrita\n");
+        return;
+    }
 
+    fprintf(f, "=== Relatorio de Produtos com Baixo Stock ===\n");
 
+    time_t t = time(NULL);
+    struct tm* tm_atual = localtime(&t);
+	int i;
+    for (i = 0; i < num_produtos; i++) {
+        if (produtos[i].quantidade < 5) {
+            // Contabilizar as vendas do ultimo mes para este produto
+            int vendas_no_ultimo_mes = 0;
+            Venda* vendaAtual = colecaoVendas->primeira;
+            while (vendaAtual != NULL) {
+                struct tm tm_venda;
+                strptime(vendaAtual->data, "%Y-%m-%d", &tm_venda);
 
+                // Verificar se a venda é deste produto e do ultimo mes
+                if (vendaAtual->produto_id == produtos[i].id && 
+                    tm_atual->tm_year == tm_venda.tm_year && 
+                    tm_atual->tm_mon == tm_venda.tm_mon) {
+                    vendas_no_ultimo_mes += vendaAtual->quantidade;
+                }
 
+                vendaAtual = vendaAtual->proximo;
+            }
 
+            fprintf(f, "ID: %d Nome: %s SKU: %s Quantidade: %d Vendas no ultimo mes: %d\n", 
+                produtos[i].id, produtos[i].nome, produtos[i].sku, produtos[i].quantidade, vendas_no_ultimo_mes);
+        }
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    fclose(f);
+}
 
 
 void gerirProdutos() {
@@ -1866,8 +2006,6 @@ void gerirClientesSubmenu(ColecaoClientes* colecaoClientes, ColecaoVendas* colec
 
 
 
-
-
 void gerirVendas() {
     int opcao_menu_gerir_vendas;
     ColecaoVendas colecaoVendas;
@@ -1883,7 +2021,7 @@ void gerirVendas() {
     carregarClientes(&colecaoClientes);
     
     num_produtos = carregarProdutos(produtos);
-
+	int periodo;
 	 int numProdutos;
     do {
         system("cls");
@@ -1913,16 +2051,29 @@ void gerirVendas() {
                 listarVendasPorData(&colecaoVendas);
                 break;
             case 5:
-                //listarProdutosMaisRentaveisHoje(&colecaoVendas); // Lista os produtos que geraram mais receita hoje
+  				printf("Digite 1 para produtos mais rentaveis hoje, 2 para este mes: ");
+  				scanf("%d", &periodo);
+  				listarProdutosMaisRentaveis(&colecaoVendas, produtos, num_produtos, periodo);
                 break;
             case 6:
-                //listarVendasPorTipoHoje(&colecaoVendas); // Lista vendas por tipo de produto hoje
+                  // Listar produtos disponíveis
+  				  printf("Produtos disponiveis:\n");
+  				  listarProdutos();
+ 				  int id_produto;
+ 			      printf("Digite o ID do produto que deseja verificar: ");
+  				  scanf("%d", &id_produto);
+  				  printf("Digite 1 para vendas de hoje, 2 para este mes: ");
+  				  scanf("%d", &periodo);
+  					  
+  				  vendasPorTipoProduto(&colecaoVendas, produtos, num_produtos, id_produto, periodo);
                 break;
             case 7:
-                //gerarRelatorioContasDia(&colecaoVendas); // Gera um relatório de contas do dia
+                printf("Digite 1 para gerar relatorio do dia, 2 para gerar relatorio do mes: ");
+				scanf("%d", &periodo);
+				gerarRelatorioContas(&colecaoVendas, produtos, num_produtos, periodo);
                 break;
             case 8:
-                //gerarRelatorioBaixoStock(&colecaoProdutos); // Gera um relatório dos produtos com baixo stock (Abaixo de 5)
+                gerarRelatorioBaixoStock(produtos, num_produtos, &colecaoVendas);	 
                 break;
             case 0:
                 break;
